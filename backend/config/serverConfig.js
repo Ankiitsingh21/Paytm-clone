@@ -4,4 +4,5 @@ dotenv.config();
 
 module.exports={
         MONGODB_URL: process.env.mongodb_url,
+        JWT: process.env.JWT_SECRET
 }

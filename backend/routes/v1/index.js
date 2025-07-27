@@ -99,15 +99,19 @@ router.put("/update",verifyToken,async(req,res)=>{
 router.post("/transfer",verifyToken,async(req,res)=>{
         const fromAccountId = req.userId;
         const userName = req.body.username;
+        const session = await mongoose.startSession();
+        session.startTransaction();
         const toAccountId = await User.findOne({username:userName});
         // console.log(toAccountId, {userName});
         if (!toAccountId) {
+                await session.abortTransaction();
         return res.status(404).json({ message: "Receiver not found" });
         }
         const amount = req.body.amount;
         const Balance = await checkBalance(fromAccountId);
         // console.log({Balance});
         if(amount>Balance){
+                await session.abortTransaction();
                 return res.status(201).json({
                         message:"The amount you entered is above the balance",
                         amount:amount
@@ -115,19 +119,24 @@ router.post("/transfer",verifyToken,async(req,res)=>{
         }
         // console.log(fromAccountId," ",toAccountId._id);
         //decrement from the sending user
-        const decrement = await Decrement(fromAccountId,amount);
-        const increment = await Increment(toAccountId._id,amount);
+        const decrement = await Decrement(fromAccountId,amount,session);
+        const increment = await Increment(toAccountId._id,amount,session);
         if(decrement === true && increment === true){
+                await session.commitTransaction();
+                session.endSession();
                 return res.status(201).json({
                 message:"Money Transfered Succesfully",
                 from:fromAccountId,
                 to:toAccountId._id,
                 amount:`₹${amount}`
         });
+        }else {
+            await session.abortTransaction();
+            session.endSession();
+            return res.status(401).json({
+                message: "Unable to update balance"
+            });
         }
-        return res.status(401).json({
-                message:"Unable to update BAlance"
-        })
 })
 
 
@@ -137,20 +146,20 @@ async function  checkBalance(id){
        return account?.balance; 
 }
 
-async function Decrement(id, amount) {
+async function Decrement(id, amount , session) {
     const account = await Account.findOneAndUpdate(
         { id },
         { $inc: { balance: -amount } },
-        { new: true }
+        { new: true ,session}
     );
     return !!account; // true if account exists
 }
 
-async function Increment(id, amount) {
+async function Increment(id, amount , session) {
     const account = await Account.findOneAndUpdate(
         { id },
         { $inc: { balance: amount } },
-        { new: true }
+        { new: true ,session}
     );
     return !!account;
 }

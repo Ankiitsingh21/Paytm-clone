@@ -1,7 +1,14 @@
 // components/Appbar.jsx
 import React from 'react';
+import { useNavigate } from 'react-router-dom';
 
 const Appbar = ({ user, onLogout }) => {
+  const navigate = useNavigate();
+
+  const handleProfileClick = () => {
+    navigate('/profile');
+  };
+
   return (
     <div className="bg-blue-600 text-white p-4 flex justify-between items-center shadow-lg">
       <div className="flex items-center space-x-3">
@@ -15,7 +22,15 @@ const Appbar = ({ user, onLogout }) => {
           🔔
         </div>
         <div className="flex items-center space-x-2">
-          <span className="text-sm">Hi, {user?.firstName || 'User'}</span>
+          <button
+            onClick={handleProfileClick}
+            className="flex items-center space-x-2 hover:bg-blue-700 px-3 py-1 rounded"
+          >
+            <div className="w-6 h-6 bg-blue-800 rounded-full flex items-center justify-center text-xs">
+              {user?.firstName?.[0]}{user?.lastName?.[0]}
+            </div>
+            <span className="text-sm">Hi, {user?.firstName || 'User'}</span>
+          </button>
           <button
             onClick={onLogout}
             className="bg-blue-700 hover:bg-blue-800 px-3 py-1 rounded text-sm"

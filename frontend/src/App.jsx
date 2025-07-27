@@ -1,97 +1,112 @@
 // App.jsx
-import React, { useState } from 'react';
+import React from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate } from 'react-router-dom';
+import { AuthProvider, useAuth } from './context/authContext';
 import Dashboard from './pages/Dashboard';
 import SendMoney from './pages/sendMoney';
 import SignIn from './pages/signIn';
 import SignUp from './pages/signUp';
+import Profile from './pages/Profile';
+import './App.css';
+
+// Protected Route component
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse">
+          <div className="w-16 h-16 bg-blue-200 rounded-full mx-auto mb-4"></div>
+          <div className="text-center text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+  
+  return isAuthenticated ? children : <Navigate to="/signin" replace />;
+};
+
+// Public Route component (redirect to dashboard if already authenticated)
+const PublicRoute = ({ children }) => {
+  const { isAuthenticated, loading } = useAuth();
+  
+  if (loading) {
+    return (
+      <div className="min-h-screen flex items-center justify-center bg-gray-50">
+        <div className="animate-pulse">
+          <div className="w-16 h-16 bg-blue-200 rounded-full mx-auto mb-4"></div>
+          <div className="text-center text-gray-500">Loading...</div>
+        </div>
+      </div>
+    );
+  }
+  
+  return isAuthenticated ? <Navigate to="/dashboard" replace /> : children;
+};
+
+const AppRoutes = () => {
+  return (
+    <Router>
+      <Routes>
+        {/* Public routes */}
+        <Route 
+          path="/signin" 
+          element={
+            <PublicRoute>
+              <SignIn />
+            </PublicRoute>
+          } 
+        />
+        <Route 
+          path="/signup" 
+          element={
+            <PublicRoute>
+              <SignUp />
+            </PublicRoute>
+          } 
+        />
+        
+        {/* Protected routes */}
+        <Route 
+          path="/dashboard" 
+          element={
+            <ProtectedRoute>
+              <Dashboard />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/send" 
+          element={
+            <ProtectedRoute>
+              <SendMoney />
+            </ProtectedRoute>
+          } 
+        />
+        <Route 
+          path="/profile" 
+          element={
+            <ProtectedRoute>
+              <Profile />
+            </ProtectedRoute>
+          } 
+        />
+        
+        {/* Default redirect */}
+        <Route path="/" element={<Navigate to="/dashboard" replace />} />
+        <Route path="*" element={<Navigate to="/dashboard" replace />} />
+      </Routes>
+    </Router>
+  );
+};
 
 const App = () => {
-  const [currentPage, setCurrentPage] = useState('signin');
-  const [user, setUser] = useState(null);
-  const [balance, setBalance] = useState(5000);
-  const [selectedUser, setSelectedUser] = useState(null);
-  
-  // Sample users data - replace with your API calls
-  const [users] = useState([
-    { _id: '1', firstName: 'John', lastName: 'Doe', email: 'john@example.com' },
-    { _id: '2', firstName: 'Jane', lastName: 'Smith', email: 'jane@example.com' },
-    { _id: '3', firstName: 'Bob', lastName: 'Johnson', email: 'bob@example.com' },
-    { _id: '4', firstName: 'Alice', lastName: 'Brown', email: 'alice@example.com' },
-  ]);
-
-  const handleSignIn = (email, password) => {
-    // Replace with your API call
-    console.log('Sign in:', { email, password });
-    setUser({ firstName: 'Demo', lastName: 'User', email });
-    setCurrentPage('dashboard');
-  };
-
-  const handleSignUp = (firstName, lastName, email, password) => {
-    // Replace with your API call
-    console.log('Sign up:', { firstName, lastName, email, password });
-    setUser({ firstName, lastName, email });
-    setCurrentPage('dashboard');
-  };
-
-  const handleSendMoney = (userId, amount, note) => {
-    // Replace with your API call
-    console.log('Send money:', { userId, amount, note });
-    setBalance(prev => prev - amount);
-    setCurrentPage('dashboard');
-    setSelectedUser(null);
-  };
-
-  const handleSelectUserForMoney = (user) => {
-    setSelectedUser(user);
-    setCurrentPage('sendmoney');
-  };
-
-  const handleLogout = () => {
-    setUser(null);
-    setCurrentPage('signin');
-  };
-
-  // Route rendering
-  switch (currentPage) {
-    case 'signin':
-      return (
-        <SignIn
-          onSignIn={handleSignIn}
-          onSwitchToSignUp={() => setCurrentPage('signup')}
-        />
-      );
-    
-    case 'signup':
-      return (
-        <SignUp
-          onSignUp={handleSignUp}
-          onSwitchToSignIn={() => setCurrentPage('signin')}
-        />
-      );
-    
-    case 'dashboard':
-      return (
-        <Dashboard
-          user={user}
-          balance={balance}
-          users={users}
-          onSendMoney={handleSelectUserForMoney}
-          onLogout={handleLogout}
-        />
-      );
-    
-    case 'sendmoney':
-      return (
-        <SendMoney
-          selectedUser={selectedUser}
-          onBack={() => setCurrentPage('dashboard')}
-          onSend={handleSendMoney}
-        />
-      );
-    
-    default:
-      return <SignIn onSignIn={handleSignIn} onSwitchToSignUp={() => setCurrentPage('signup')} />;
-  }
+  return (
+    <AuthProvider>
+      <AppRoutes />
+    </AuthProvider>
+  );
 };
 
 export default App;
